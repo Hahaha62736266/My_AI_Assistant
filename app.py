@@ -4,7 +4,7 @@ import webbrowser
 import random
 import re
 from datetime import datetime
-from ddgs import DDGS
+from duckduckgo_search import DDGS
 
 # --------------------------
 # 🎨 PAGE CONFIG
