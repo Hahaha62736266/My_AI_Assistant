@@ -1,232 +1,448 @@
 import streamlit as st
-import wikipedia
-import webbrowser
-import random
-import re
-from datetime import datetime
-from duckduckgo_search import DDGS
 
-# --------------------------
-# 🎨 PAGE CONFIG
-# --------------------------
+# ----------------------
+# Page Configuration
+# ----------------------
 st.set_page_config(
     page_title="✨ AI Voice Assistant",
     page_icon="🤖",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"
 )
 
-# --------------------------
-# 🎨 CUSTOM STYLING
-# --------------------------
-st.markdown("""
-<style>
-    * { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    .main-header {
-        text-align: center;
-        font-size: 2.5rem;
-        font-weight: 800;
-        background: linear-gradient(90deg, #2563eb, #a855f7);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin-bottom: 0.5rem;
-    }
-    .subtitle {
-        text-align: center;
-        color: #64748b;
-        font-size: 1.1rem;
-        margin-bottom: 2rem;
-    }
-    .chat-box {
-        background: #f8fafc;
-        border-radius: 16px;
-        padding: 1.5rem;
-        margin-bottom: 1.5rem;
-        border-left: 4px solid #2563eb;
-    }
-    .user-msg {
-        background: #dbeafe;
-        padding: 0.8rem 1.2rem;
-        border-radius: 12px;
-        margin-bottom: 0.8rem;
-    }
-    .assistant-msg {
-        background: #f0f4f8;
-        padding: 0.8rem 1.2rem;
-        border-radius: 12px;
-        margin-bottom: 0.8rem;
-        border-left: 3px solid #16a34a;
-    }
-    .fun-msg { border-left-color: #a855f7; }
-    .info-msg { border-left-color: #2563eb; }
-    .error-msg { border-left-color: #dc2626; }
-    .stButton > button {
-        border-radius: 10px;
-        font-weight: 600;
-        transition: all 0.2s;
-    }
-    .quick-btn button {
-        width: 100%;
-    }
-</style>
-""", unsafe_allow_html=True)
+# ----------------------
+# Sidebar Navigation
+# ----------------------
+with st.sidebar:
+    st.title("🤖 AI Assistant")
+    st.markdown("---")
+    st.subheader("📌 About")
+    st.info("""
+    This AI Assistant features:
+    - 🎤 Voice recognition
+    - 💬 Text chat
+    - 🕒 Time & date
+    - 🧮 Math calculations
+    - 📚 Wikipedia search
+    - 🔗 Quick website links
+    - 🔊 Auto voice replies
+    """)
+    st.subheader("⚙️ Controls")
+    st.success("Use the dashboard on the right!")
+    st.markdown("---")
+    st.caption("Made with Jayson Pepito | GitHub Edition ✨")
 
-# --------------------------
-# 💾 SESSION STATE — CHAT HISTORY
-# --------------------------
-if "history" not in st.session_state:
-    st.session_state.history = []
-
-# --------------------------
-# 🧠 CORE LOGIC
-# --------------------------
-def get_internet_answer(query):
-    if not query.strip():
-        return "Please tell me what you want to know."
-    
-    # Step 1: Wikipedia
-    try:
-        wikipedia.set_lang("en")
-        result = wikipedia.summary(query, sentences=3)
-        return f"📚 From Wikipedia:\n{result}"
-    except Exception:
-        pass
-    
-    # Step 2: DuckDuckGo
-    try:
-        with DDGS() as ddgs:
-            results = list(ddgs.text(query, max_results=3, region="ph-en", safesearch="moderate"))
-        if results:
-            best = results[0]
-            answer = f"{best['title']}\n{best['body']}"
-            return answer if len(answer) < 500 else answer[:500] + "..."
-        return "I found no clear answer for that."
-    except Exception as e:
-        return f"Search error: {str(e)}"
-
-def tell_time_date():
-    now = datetime.now()
-    time_now = now.strftime("%I:%M %p")
-    date_now = now.strftime("%A, %B %d, %Y")
-    return f"🕒 Today is {date_now}, time is {time_now}"
-
-def open_item(command):
-    sites = {
-        "youtube": "https://youtube.com",
-        "google": "https://google.com",
-        "github": "https://github.com",
-        "facebook": "https://facebook.com",
-        "wikipedia": "https://en.wikipedia.org",
-        "maps": "https://maps.google.com",
-    }
-    for name, url in sites.items():
-        if name in command:
-            return f"Opening {name}...", url
-    return "I don't know how to open that yet.", None
-
-def fun_tools(command):
-    if "joke" in command:
-        jokes = [
-            "Why robots never get lost? They always follow the right code!",
-            "What do you call a sleeping robot? A power nap!",
-            "Why do robots love music? They have great beats!",
-            "Why was the computer cold? It left its Windows open!",
-            "What’s a robot’s favorite snack? Microchips!"
-        ]
-        return "😄 " + random.choice(jokes), "fun"
-    elif "motivate" in command or "inspire" in command:
-        quotes = [
-            "Believe you can and you're halfway there.",
-            "Your only limit is your mind.",
-            "Every day is a fresh start."
-        ]
-        return "💡 " + random.choice(quotes), "fun"
-    elif "roll dice" in command:
-        d1, d2 = random.randint(1, 6), random.randint(1, 6)
-        return f"🎲 You rolled {d1} and {d2} — total {d1 + d2}", "fun"
-    return None, None
-
-def calculate(command):
-    exp = re.sub(r"what is|calculate|plus|minus|times|divided by",
-                 lambda m: {"plus": "+", "minus": "-", "times": "*", "divided by": "/"}.get(m.group(0), ""), command)
-    exp = re.sub(r"one|two|three|four|five|six|seven|eight|nine|ten",
-                 lambda m: {"one":"1", "two":"2", "three":"3", "four":"4", "five":"5",
-                            "six":"6", "seven":"7", "eight":"8", "nine":"9", "ten":"10"}.get(m.group(0), ""), exp)
-    try:
-        result = eval(exp.strip(" ?"))
-        return f"🧮 The answer is {result}", "info"
-    except:
-        return None, None
-
-def process_command(command):
-    command = command.lower().strip()
-    
-    if any(word in command for word in ["exit now", "goodbye", "close program", "shut down"]):
-        return "🛑 Goodbye! Have a wonderful day!", "exit", None
-    elif "time" in command or "date" in command or "day" in command:
-        return tell_time_date(), "info", None
-    elif "open" in command:
-        msg, url = open_item(command)
-        return msg, "info", url
-    else:
-        result, tag = fun_tools(command)
-        if result: return result, tag, None
-        result, tag = calculate(command)
-        if result: return result, tag, None
-        answer = get_internet_answer(command)
-        return f"📌 Answer:\n{answer}", "info", None
-
-# --------------------------
-# � UI LAYOUT
-# --------------------------
-st.markdown("<h1 class='main-header'>✨ AI Assistant</h1>", unsafe_allow_html=True)
-st.markdown("<p class='subtitle'>Ask me anything — search, calculate, open sites, or just have fun!</p>", unsafe_allow_html=True)
-
-# Quick Buttons
-col1, col2, col3, col4 = st.columns(4)
-with col1:
-    if st.button("🕒 Time", use_container_width=True):
-        st.session_state.input_text = "time"
-with col2:
-    if st.button("😄 Joke", use_container_width=True):
-        st.session_state.input_text = "tell me a joke"
-with col3:
-    if st.button("💡 Motivate", use_container_width=True):
-        st.session_state.input_text = "motivate me"
-with col4:
-    if st.button("🎲 Roll Dice", use_container_width=True):
-        st.session_state.input_text = "roll dice"
-
-# Input
-user_input = st.text_input("💬 Type your question:", 
-                          value=st.session_state.get("input_text", ""),
-                          placeholder="Ask me anything...",
-                          key="text_input")
-
-if st.button("🚀 Send", type="primary", use_container_width=True) and user_input:
-    # Add user message
-    st.session_state.history.append(("user", user_input))
-    
-    # Process
-    reply, tag, url = process_command(user_input)
-    
-    # Add assistant reply
-    st.session_state.history.append(("assistant", reply, tag, url))
-    
-    # Clear input
-    st.session_state.input_text = ""
-
-# Display Chat History
+# ----------------------
+# Main Dashboard
+# ----------------------
+st.title("✨ AI Voice Assistant Dashboard")
+st.subheader("Ask me anything — speak or type below!")
 st.markdown("---")
-for msg in st.session_state.history:
-    if msg[0] == "user":
-        st.markdown(f"<div class='chat-box user-msg'><strong>You:</strong> {msg[1]}</div>", unsafe_allow_html=True)
-    else:
-        tag_class = f"{msg[2]}-msg" if len(msg) > 2 else ""
-        st.markdown(f"<div class='chat-box assistant-msg {tag_class}'><strong>Assistant:</strong> {msg[1]}</div>", unsafe_allow_html=True)
-        if len(msg) > 3 and msg[3]:
-            st.markdown(f"🔗 [Open Link]({msg[3]}) — will open in new tab")
 
+# Your complete HTML dashboard
+AI_ASSISTANT_HTML = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>✨ AI Voice Assistant Dashboard</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts & Font Awesome Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            blue: '#2563eb',
+                            purple: '#a855f7',
+                            green: '#16a34a',
+                            slateBg: '#f8fafc',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: #f8fafc;
+            color: #1e293b;
+            min-height: 100vh;
+        }
+        .main-header {
+            background: linear-gradient(90deg, #2563eb, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.85);
+            border-radius: 20px;
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            backdrop-filter: blur(12px);
+            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05);
+        }
+        .chat-box {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid #2563eb;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+            transition: all 0.2s ease;
+        }
+        .user-msg {
+            background: #dbeafe;
+            border-left-color: #2563eb;
+            color: #1e3a8a;
+        }
+        .assistant-msg {
+            background: #f0f4f8;
+            border-left-color: #16a34a;
+            color: #0f172a;
+        }
+        .fun-msg { border-left-color: #a855f7 !important; }
+        .info-msg { border-left-color: #2563eb !important; }
+        .error-msg { border-left-color: #dc2626 !important; }
+        .wave-bar {
+            width: 4px;
+            height: 16px;
+            background-color: #2563eb;
+            border-radius: 9999px;
+            transition: height 0.15s ease;
+        }
+        .listening .wave-bar {
+            animation: pulse-wave 0.8s ease-in-out infinite alternate;
+        }
+        @keyframes pulse-wave {
+            0% { height: 8px; background-color: #2563eb; }
+            50% { height: 32px; background-color: #a855f7; }
+            100% { height: 16px; background-color: #2563eb; }
+        }
+        .wave-bar:nth-child(1) { animation-delay: 0.1s; }
+        .wave-bar:nth-child(2) { animation-delay: 0.25s; }
+        .wave-bar:nth-child(3) { animation-delay: 0.4s; }
+        .wave-bar:nth-child(4) { animation-delay: 0.2s; }
+        .wave-bar:nth-child(5) { animation-delay: 0.35s; }
+        .mic-btn-listening {
+            animation: mic-glow 1.5s infinite alternate;
+            background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+        }
+        @keyframes mic-glow {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5); }
+            100% { box-shadow: 0 0 0 18px rgba(239, 68, 68, 0); }
+        }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="p-3 sm:p-6 md:p-8 flex flex-col items-center min-h-screen">
+    <div class="w-full max-w-4xl space-y-6">
+        <header class="text-center space-y-2 py-2">
+            <h1 class="text-3xl sm:text-5xl font-extrabold main-header tracking-tight flex items-center justify-center gap-3">
+                <span>🤖</span> ✨ AI Assistant
+            </h1>
+            <p class="text-sm sm:text-base text-slate-500 font-medium tracking-wide">
+                Ask me anything — search, calculate, open sites, or just talk using your voice!
+            </p>
+        </header>
+        
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+            <button onclick="handleQuickAction('time')" class="px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-700 font-semibold shadow-sm hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50/50 transition-all flex items-center justify-center gap-2 text-sm">
+                <span>🕒</span> Time
+            </button>
+            <button onclick="handleQuickAction('tell me a joke')" class="px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-700 font-semibold shadow-sm hover:border-purple-500 hover:text-purple-600 hover:bg-purple-50/50 transition-all flex items-center justify-center gap-2 text-sm">
+                <span>😄</span> Joke
+            </button>
+            <button onclick="handleQuickAction('motivate me')" class="px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-700 font-semibold shadow-sm hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50/50 transition-all flex items-center justify-center gap-2 text-sm">
+                <span>💡</span> Motivate
+            </button>
+            <button onclick="handleQuickAction('roll dice')" class="px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-700 font-semibold shadow-sm hover:border-indigo-500 hover:text-indigo-600 hover:bg-indigo-50/50 transition-all flex items-center justify-center gap-2 text-sm">
+                <span>🎲</span> Roll Dice
+            </button>
+        </div>
+        
+        <div class="glass-card p-6 sm:p-8 flex flex-col items-center justify-center text-center space-y-4 relative overflow-hidden">
+            <div id="statusBadge" class="px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-100 text-emerald-700 border border-emerald-300/50 flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span> Ready to Listen
+            </div>
+            <div id="waveContainer" class="flex items-center gap-1.5 h-10 my-1">
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+            </div>
+            <button id="micBtn" onclick="toggleVoiceInput()" class="w-20 h-20 rounded-full bg-gradient-to-tr from-blue-600 to-purple-600 text-white text-2xl font-bold shadow-lg shadow-blue-500/30 flex items-center justify-center transition-all transform hover:scale-105 active:scale-95">
+                <i class="fa-solid fa-microphone" id="micIcon"></i>
+            </button>
+            <p id="micStatusText" class="text-xs sm:text-sm font-semibold text-slate-500">Tap mic and start speaking, or type below</p>
+            <div class="w-full pt-4 border-t border-slate-200/80 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-slate-600">
+                <div class="flex items-center justify-between gap-2 px-3 py-2 bg-slate-100/70 rounded-xl">
+                    <label for="ttsToggle" class="font-semibold flex items-center gap-1.5">
+                        <i class="fa-solid fa-volume-high text-blue-600"></i> Auto Voice Reply
+                    </label>
+                    <input type="checkbox" id="ttsToggle" checked class="w-4 h-4 accent-blue-600 cursor-pointer">
+                </div>
+                <div class="flex items-center justify-between gap-2 px-3 py-2 bg-slate-100/70 rounded-xl">
+                    <label for="rateSlider" class="font-semibold flex items-center gap-1.5">
+                        <i class="fa-solid fa-gauge-high text-purple-600"></i> Speech Speed
+                    </label>
+                    <input type="range" id="rateSlider" min="0.8" max="1.4" step="0.1" value="1.0" class="w-24 accent-purple-600 cursor-pointer">
+                </div>
+            </div>
+        </div>
+        
+        <div class="glass-card p-4 sm:p-6 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+                <h2 class="text-base font-bold text-slate-700 flex items-center gap-2">
+                    <i class="fa-solid fa-comments text-blue-600"></i> Conversation History
+                </h2>
+                <button onclick="clearHistory()" class="text-xs font-semibold px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-600 transition-colors flex items-center gap-1">
+                    <i class="fa-solid fa-trash-can"></i> Clear History
+                </button>
+            </div>
+            <div id="chatHistory" class="max-h-96 overflow-y-auto space-y-3 pr-1">
+                <div class="chat-box assistant-msg info-msg">
+                    <strong>Assistant:</strong> Hello! How can I assist you today? Try saying "What's the time?", "Tell me a joke", or ask any question!
+                </div>
+            </div>
+        </div>
+        
+        <div class="flex items-center gap-2">
+            <input type="text" id="userInput" placeholder="Type your question or command..." 
+                onkeydown="if(event.key === 'Enter') handleSend()"
+                class="flex-1 p-3.5 sm:p-4 text-sm sm:text-base rounded-xl border border-slate-200 bg-white shadow-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
+            <button onclick="handleSend()" class="px-5 sm:px-6 py-3.5 sm:py-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-2">
+                <i class="fa-solid fa-paper-plane"></i>
+                <span class="hidden sm:inline">Send</span>
+            </button>
+        </div>
+        
+        <div class="glass-card p-4">
+            <span class="text-xs uppercase font-bold text-slate-400 block mb-2 tracking-wider">Quick Open Websites</span>
+            <div class="flex flex-wrap gap-2 text-xs">
+                <button onclick="executeCommand('open youtube')" class="px-3 py-1.5 rounded-lg bg-red-50 text-red-600 font-medium hover:bg-red-100 transition"><i class="fa-brands fa-youtube"></i> YouTube</button>
+                <button onclick="executeCommand('open google')" class="px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 font-medium hover:bg-blue-100 transition"><i class="fa-brands fa-google"></i> Google</button>
+                <button onclick="executeCommand('open github')" class="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-800 font-medium hover:bg-slate-200 transition"><i class="fa-brands fa-github"></i> GitHub</button>
+                <button onclick="executeCommand('open wikipedia')" class="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 font-medium hover:bg-emerald-100 transition"><i class="fa-solid fa-book"></i> Wikipedia</button>
+                <button onclick="executeCommand('open maps')" class="px-3 py-1.5 rounded-lg bg-purple-50 text-purple-700 font-medium hover:bg-purple-100 transition"><i class="fa-solid fa-map-location-dot"></i> Maps</button>
+            </div>
+        </div>
+        
+        <footer class="text-center text-xs text-slate-400 py-4">
+            Made with Jayson Pepito | Your AI Assistant — Web Edition ✨
+        </footer>
+    </div>
+    <script>
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition = null;
+        let isListening = false;
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'en-US';
+            recognition.onstart = () => { isListening = true; updateMicUI(true); };
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                document.getElementById('userInput').value = transcript;
+                executeCommand(transcript);
+            };
+            recognition.onerror = () => { updateMicUI(false); };
+            recognition.onend = () => { isListening = false; updateMicUI(false); };
+        }
+        function toggleVoiceInput() {
+            if (!recognition) {
+                alert("Speech recognition not supported in this browser. Try Chrome or Edge.");
+                return;
+            }
+            if (isListening) recognition.stop();
+            else recognition.start();
+        }
+        function updateMicUI(listening) {
+            const micBtn = document.getElementById('micBtn');
+            const waveContainer = document.getElementById('waveContainer');
+            const micStatusText = document.getElementById('micStatusText');
+            const statusBadge = document.getElementById('statusBadge');
+            if (listening) {
+                micBtn.classList.add('mic-btn-listening');
+                waveContainer.classList.add('listening');
+                micStatusText.innerText = "Listening... Speak now!";
+                statusBadge.className = "px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-red-100 text-red-700 border border-red-300/50 flex items-center gap-1.5";
+                statusBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-red-500 animate-ping"></span> Active Listening`;
+            } else {
+                micBtn.classList.remove('mic-btn-listening');
+                waveContainer.classList.remove('listening');
+                micStatusText.innerText = "Tap mic and start speaking, or type below";
+                statusBadge.className = "px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-100 text-emerald-700 border border-emerald-300/50 flex items-center gap-1.5";
+                statusBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span> Ready to Listen`;
+            }
+        }
+        function handleSend() {
+            const input = document.getElementById('userInput');
+            const query = input.value.trim();
+            if (query) { executeCommand(query); input.value = ''; }
+        }
+        function handleQuickAction(command) { executeCommand(command); }
+        async function executeCommand(rawCommand) {
+            const command = rawCommand.toLowerCase().trim();
+            addChatMessage('user', rawCommand);
+            if (command.includes('time') || command.includes('date') || command.includes('day')) {
+                const now = new Date();
+                const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const dateStr = now.toLocaleDateString(undefined, options);
+                respond(`🕒 Today is ${dateStr}, time is ${timeStr}`, 'info');
+                return;
+            }
+            const siteMap = {
+                'youtube': 'https://youtube.com', 'google': 'https://google.com',
+                'github': 'https://github.com', 'facebook': 'https://facebook.com',
+                'wikipedia': 'https://en.wikipedia.org', 'maps': 'https://maps.google.com'
+            };
+            for (const [site, url] of Object.entries(siteMap)) {
+                if (command.includes('open ' + site) || command === site) {
+                    window.open(url, '_blank');
+                    respond(`Opening ${site}...`, 'info', url);
+                    return;
+                }
+            }
+            if (command.includes('joke')) {
+                const jokes = [
+                    "Why robots never get lost? They always follow the right code!",
+                    "What do you call a sleeping robot? A power nap!",
+                    "Why do robots love music? They have great beats!",
+                    "Why was the computer cold? It left its Windows open!",
+                    "What's a robot's favorite snack? Microchips!"
+                ];
+                respond("😄 " + jokes[Math.floor(Math.random() * jokes.length)], 'fun');
+                return;
+            }
+            if (command.includes('motivate') || command.includes('inspire')) {
+                const quotes = [
+                    "Believe you can and you're halfway there.",
+                    "Your only limit is your mind.",
+                    "Every day is a fresh start."
+                ];
+                respond("💡 " + quotes[Math.floor(Math.random() * quotes.length)], 'fun');
+                return;
+            }
+            if (command.includes('roll dice') || command.includes('roll a dice')) {
+                const d1 = Math.floor(Math.random() * 6) + 1;
+                const d2 = Math.floor(Math.random() * 6) + 1;
+                respond(`🎲 You rolled ${d1} and ${d2} — total ${d1 + d2}`, 'fun');
+                return;
+            }
+            const mathResult = calculateMath(command);
+            if (mathResult !== null) {
+                respond(`🧮 The answer is ${mathResult}`, 'info');
+                return;
+            }
+            respondThinking();
+            const wikiAnswer = await fetchWikipediaSummary(rawCommand);
+            removeThinking();
+            if (wikiAnswer) {
+                respond(`📚 From Wikipedia:\\n${wikiAnswer}`, 'info');
+            } else {
+                respond(`📌 I couldn't find an exact match. Try searching Google for "${rawCommand}".`, 'info', `https://www.google.com/search?q=${encodeURIComponent(rawCommand)}`);
+            }
+        }
+        function calculateMath(command) {
+            let expr = command.replace(/what is|calculate|compute/g, '').trim();
+            expr = expr.replace(/plus/g, '+').replace(/minus/g, '-').replace(/times|multiplied by/g, '*').replace(/divided by/g, '/');
+            if (/^[0-9+\-*/.\\s()]+$/.test(expr) && expr.length > 0) {
+                try { return eval(expr); } catch { return null; }
+            }
+            return null;
+        }
+        async function fetchWikipediaSummary(query) {
+            try {
+                const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`;
+                const res = await fetch(url);
+                if (!res.ok) return null;
+                const data = await res.json();
+                return data.extract || null;
+            } catch { return null; }
+        }
+        function respond(text, tag = 'info', linkUrl = null) {
+            addChatMessage('assistant', text, tag, linkUrl);
+            speakText(text);
+        }
+        function speakText(text) {
+            const autoVoice = document.getElementById('ttsToggle').checked;
+            if (!autoVoice || !('speechSynthesis' in window)) return;
+            window.speechSynthesis.cancel();
+            const cleanText = text.replace(/[\\u{1F600}-\\u{1F64F}\\u{1F300}-\\u{1F5FF}\\u{1F680}-\\u{1F6FF}\\u{2600}-\\u{26FF}\\u{2700}-\\u{27BF}]/gu, '');
+            const utterance = new SpeechSynthesisUtterance(cleanText);
+            const speed = parseFloat(document.getElementById('rateSlider').value) || 1.0;
+            utterance.rate = speed;
+            window.speechSynthesis.speak(utterance);
+        }
+        function addChatMessage(sender, text, tag = 'info', linkUrl = null) {
+            const history = document.getElementById('chatHistory');
+            const msgDiv = document.createElement('div');
+            if (sender === 'user') {
+                msgDiv.className = 'chat-box user-msg';
+                msgDiv.innerHTML = `<strong>You:</strong> ${escapeHtml(text)}`;
+            } else {
+                msgDiv.className = `chat-box assistant-msg ${tag}-msg`;
+                let content = `<strong>Assistant:</strong> ${escapeHtml(text).replace(/\\n/g, '<br>')}`;
+                if (linkUrl) content += `<br><a href="${linkUrl}" target="_blank" class="inline-flex items-center gap-1 text-blue-600 font-bold hover:underline mt-2 text-xs"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Link</a>`;
+                msgDiv.innerHTML = content;
+            }
+            history.appendChild(msgDiv);
+            history.scrollTop = history.scrollHeight;
+        }
+        function respondThinking() {
+            const history = document.getElementById('chatHistory');
+            const msgDiv = document.createElement('div');
+            msgDiv.id = 'thinkingBubble';
+            msgDiv.className = 'chat-box assistant-msg info-msg flex items-center gap-2 text-slate-500';
+            msgDiv.innerHTML = `<i class="fa-solid fa-circle-notch animate-spin text-blue-600"></i> Thinking & searching...`;
+            history.appendChild(msgDiv);
+            history.scrollTop = history.scrollHeight;
+        }
+        function removeThinking() {
+            const thinking = document.getElementById('thinkingBubble');
+            if (thinking) thinking.remove();
+        }
+        function clearHistory() {
+            document.getElementById('chatHistory').innerHTML = `
+                <div class="chat-box assistant-msg info-msg">
+                    <strong>Assistant:</strong> Conversation cleared! How can I help you next?
+                </div>
+            `;
+        }
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.innerText = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
+"""
+
+# Embed the HTML dashboard
+st.components.v1.html(AI_ASSISTANT_HTML, height=1200, scrolling=True)
+
+# ----------------------
 # Footer
+# ----------------------
 st.markdown("---")
-st.markdown("<div style='text-align:center; color:#94a3b8; padding:1rem;'>Made with Jayson Pepito | Your AI Assistant — Powered by Streamlit</div>", unsafe_allow_html=True)
+st.caption("💡 Tip: Use Chrome or Edge for full voice recognition support | Made by Jayson Pepito ✨")
