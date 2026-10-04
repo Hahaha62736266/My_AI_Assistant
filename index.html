@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>✨ AI Voice Assistant Dashboard</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts & Font Awesome Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            blue: '#2563eb',
+                            purple: '#a855f7',
+                            green: '#16a34a',
+                            slateBg: '#f8fafc',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: #f8fafc;
+            color: #1e293b;
+            min-height: 100vh;
+        }
+
+        .main-header {
+            background: linear-gradient(90deg, #2563eb, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.85);
+            border-radius: 20px;
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            backdrop-filter: blur(12px);
+            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05);
+        }
+
+        .chat-box {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid #2563eb;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+            transition: all 0.2s ease;
+        }
+
+        .user-msg {
+            background: #dbeafe;
+            border-left-color: #2563eb;
+            color: #1e3a8a;
+        }
+
+        .assistant-msg {
+            background: #f0f4f8;
+            border-left-color: #16a34a;
+            color: #0f172a;
+        }
+
+        .fun-msg { border-left-color: #a855f7 !important; }
+        .info-msg { border-left-color: #2563eb !important; }
+        .error-msg { border-left-color: #dc2626 !important; }
+
+        /* Sound visualizer bars animation */
+        .wave-bar {
+            width: 4px;
+            height: 16px;
+            background-color: #2563eb;
+            border-radius: 9999px;
+            transition: height 0.15s ease;
+        }
+
+        .listening .wave-bar {
+            animation: pulse-wave 0.8s ease-in-out infinite alternate;
+        }
+
+        @keyframes pulse-wave {
+            0% { height: 8px; background-color: #2563eb; }
+            50% { height: 32px; background-color: #a855f7; }
+            100% { height: 16px; background-color: #2563eb; }
+        }
+
+        .wave-bar:nth-child(1) { animation-delay: 0.1s; }
+        .wave-bar:nth-child(2) { animation-delay: 0.25s; }
+        .wave-bar:nth-child(3) { animation-delay: 0.4s; }
+        .wave-bar:nth-child(4) { animation-delay: 0.2s; }
+        .wave-bar:nth-child(5) { animation-delay: 0.35s; }
+
+        /* Glowing Mic Button */
+        .mic-btn-listening {
+            animation: mic-glow 1.5s infinite alternate;
+            background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+        }
+
+        @keyframes mic-glow {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5); }
+            100% { box-shadow: 0 0 0 18px rgba(239, 68, 68, 0); }
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="p-3 sm:p-6 md:p-8 flex flex-col items-center min-h-screen">
+
+    <div class="w-full max-w-4xl space-y-6">
+
+        <!-- Main Header -->
+        <header class="text-center space-y-2 py-2">
+            <h1 class="text-3xl sm:text-5xl font-extrabold main-header tracking-tight flex items-center justify-center gap-3">
+                <span>🤖</span> ✨ AI Assistant
+            </h1>
+            <p class="text-sm sm:text-base text-slate-500 font-medium tracking-wide">
+                Ask me anything — search, calculate, open sites, or just talk using your voice!
+            </p>
+        </header>
+
+        <!-- Quick Action Buttons -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+            <button onclick="handleQuickAction('time')" class="px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-700 font-semibold shadow-sm hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50/50 transition-all flex items-center justify-center gap-2 text-sm">
+                <span>🕒</span> Time
+            </button>
+            <button onclick="handleQuickAction('tell me a joke')" class="px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-700 font-semibold shadow-sm hover:border-purple-500 hover:text-purple-600 hover:bg-purple-50/50 transition-all flex items-center justify-center gap-2 text-sm">
+                <span>😄</span> Joke
+            </button>
+            <button onclick="handleQuickAction('motivate me')" class="px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-700 font-semibold shadow-sm hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50/50 transition-all flex items-center justify-center gap-2 text-sm">
+                <span>💡</span> Motivate
+            </button>
+            <button onclick="handleQuickAction('roll dice')" class="px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-700 font-semibold shadow-sm hover:border-indigo-500 hover:text-indigo-600 hover:bg-indigo-50/50 transition-all flex items-center justify-center gap-2 text-sm">
+                <span>🎲</span> Roll Dice
+            </button>
+        </div>
+
+        <!-- Voice & Audio Visualizer Interactive Box -->
+        <div class="glass-card p-6 sm:p-8 flex flex-col items-center justify-center text-center space-y-4 relative overflow-hidden">
+            <div id="statusBadge" class="px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-100 text-emerald-700 border border-emerald-300/50 flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span> Ready to Listen
+            </div>
+
+            <!-- Wave Animation Bars -->
+            <div id="waveContainer" class="flex items-center gap-1.5 h-10 my-1">
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+            </div>
+
+            <!-- Main Mic Trigger -->
+            <button id="micBtn" onclick="toggleVoiceInput()" class="w-20 h-20 rounded-full bg-gradient-to-tr from-blue-600 to-purple-600 text-white text-2xl font-bold shadow-lg shadow-blue-500/30 flex items-center justify-center transition-all transform hover:scale-105 active:scale-95">
+                <i class="fa-solid fa-microphone" id="micIcon"></i>
+            </button>
+            <p id="micStatusText" class="text-xs sm:text-sm font-semibold text-slate-500">Tap mic and start speaking, or type below</p>
+
+            <!-- TTS Settings Bar -->
+            <div class="w-full pt-4 border-t border-slate-200/80 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-slate-600">
+                <div class="flex items-center justify-between gap-2 px-3 py-2 bg-slate-100/70 rounded-xl">
+                    <label for="ttsToggle" class="font-semibold flex items-center gap-1.5">
+                        <i class="fa-solid fa-volume-high text-blue-600"></i> Auto Voice Reply
+                    </label>
+                    <input type="checkbox" id="ttsToggle" checked class="w-4 h-4 accent-blue-600 cursor-pointer">
+                </div>
+                <div class="flex items-center justify-between gap-2 px-3 py-2 bg-slate-100/70 rounded-xl">
+                    <label for="rateSlider" class="font-semibold flex items-center gap-1.5">
+                        <i class="fa-solid fa-gauge-high text-purple-600"></i> Speech Speed
+                    </label>
+                    <input type="range" id="rateSlider" min="0.8" max="1.4" step="0.1" value="1.0" class="w-24 accent-purple-600 cursor-pointer">
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat History Stream -->
+        <div class="glass-card p-4 sm:p-6 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+                <h2 class="text-base font-bold text-slate-700 flex items-center gap-2">
+                    <i class="fa-solid fa-comments text-blue-600"></i> Conversation History
+                </h2>
+                <button onclick="clearHistory()" class="text-xs font-semibold px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-600 transition-colors flex items-center gap-1">
+                    <i class="fa-solid fa-trash-can"></i> Clear History
+                </button>
+            </div>
+
+            <div id="chatHistory" class="max-h-96 overflow-y-auto space-y-3 pr-1">
+                <!-- Welcome Initial Message -->
+                <div class="chat-box assistant-msg info-msg">
+                    <strong>Assistant:</strong> Hello! How can I assist you today? Try saying "What's the time?", "Tell me a joke", or ask any question!
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Bar & Send Form -->
+        <div class="flex items-center gap-2">
+            <input type="text" id="userInput" placeholder="Type your question or command..." 
+                onkeydown="if(event.key === 'Enter') handleSend()"
+                class="flex-1 p-3.5 sm:p-4 text-sm sm:text-base rounded-xl border border-slate-200 bg-white shadow-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all">
+            <button onclick="handleSend()" class="px-5 sm:px-6 py-3.5 sm:py-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-2">
+                <i class="fa-solid fa-paper-plane"></i>
+                <span class="hidden sm:inline">Send</span>
+            </button>
+        </div>
+
+        <!-- Quick Launch Web Shortcuts -->
+        <div class="glass-card p-4">
+            <span class="text-xs uppercase font-bold text-slate-400 block mb-2 tracking-wider">Quick Open Websites</span>
+            <div class="flex flex-wrap gap-2 text-xs">
+                <button onclick="executeCommand('open youtube')" class="px-3 py-1.5 rounded-lg bg-red-50 text-red-600 font-medium hover:bg-red-100 transition"><i class="fa-brands fa-youtube"></i> YouTube</button>
+                <button onclick="executeCommand('open google')" class="px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 font-medium hover:bg-blue-100 transition"><i class="fa-brands fa-google"></i> Google</button>
+                <button onclick="executeCommand('open github')" class="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-800 font-medium hover:bg-slate-200 transition"><i class="fa-brands fa-github"></i> GitHub</button>
+                <button onclick="executeCommand('open wikipedia')" class="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 font-medium hover:bg-emerald-100 transition"><i class="fa-solid fa-book"></i> Wikipedia</button>
+                <button onclick="executeCommand('open maps')" class="px-3 py-1.5 rounded-lg bg-purple-50 text-purple-700 font-medium hover:bg-purple-100 transition"><i class="fa-solid fa-map-location-dot"></i> Maps</button>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="text-center text-xs text-slate-400 py-4">
+            Made with Jayson Pepito | Your AI Assistant — Web Edition ✨
+        </footer>
+
+    </div>
+
+    <script>
+        // Speech Recognition Setup
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition = null;
+        let isListening = false;
+
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'en-US';
+
+            recognition.onstart = () => {
+                isListening = true;
+                updateMicUI(true);
+            };
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                document.getElementById('userInput').value = transcript;
+                executeCommand(transcript);
+            };
+
+            recognition.onerror = (event) => {
+                console.error("Speech Recognition Error:", event.error);
+                updateMicUI(false);
+            };
+
+            recognition.onend = () => {
+                isListening = false;
+                updateMicUI(false);
+            };
+        }
+
+        function toggleVoiceInput() {
+            if (!recognition) {
+                alert("Speech recognition is not supported in this browser. Try Google Chrome or Microsoft Edge.");
+                return;
+            }
+
+            if (isListening) {
+                recognition.stop();
+            } else {
+                recognition.start();
+            }
+        }
+
+        function updateMicUI(listening) {
+            const micBtn = document.getElementById('micBtn');
+            const waveContainer = document.getElementById('waveContainer');
+            const micStatusText = document.getElementById('micStatusText');
+            const statusBadge = document.getElementById('statusBadge');
+
+            if (listening) {
+                micBtn.classList.add('mic-btn-listening');
+                waveContainer.classList.add('listening');
+                micStatusText.innerText = "Listening... Speak now!";
+                statusBadge.className = "px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-red-100 text-red-700 border border-red-300/50 flex items-center gap-1.5";
+                statusBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-red-500 animate-ping"></span> Active Listening`;
+            } else {
+                micBtn.classList.remove('mic-btn-listening');
+                waveContainer.classList.remove('listening');
+                micStatusText.innerText = "Tap mic and start speaking, or type below";
+                statusBadge.className = "px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-100 text-emerald-700 border border-emerald-300/50 flex items-center gap-1.5";
+                statusBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span> Ready to Listen`;
+            }
+        }
+
+        // Main Send Button Handler
+        function handleSend() {
+            const input = document.getElementById('userInput');
+            const query = input.value.trim();
+            if (query) {
+                executeCommand(query);
+                input.value = '';
+            }
+        }
+
+        function handleQuickAction(command) {
+            executeCommand(command);
+        }
+
+        async function executeCommand(rawCommand) {
+            const command = rawCommand.toLowerCase().trim();
+            addChatMessage('user', rawCommand);
+
+            // 1. Time / Date
+            if (command.includes('time') || command.includes('date') || command.includes('day')) {
+                const now = new Date();
+                const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const dateStr = now.toLocaleDateString(undefined, options);
+                const reply = `🕒 Today is ${dateStr}, time is ${timeStr}`;
+                respond(reply, 'info');
+                return;
+            }
+
+            // 2. Open Sites
+            const siteMap = {
+                'youtube': 'https://youtube.com',
+                'google': 'https://google.com',
+                'github': 'https://github.com',
+                'facebook': 'https://facebook.com',
+                'wikipedia': 'https://en.wikipedia.org',
+                'maps': 'https://maps.google.com'
+            };
+
+            for (const [site, url] of Object.entries(siteMap)) {
+                if (command.includes('open ' + site) || command === site) {
+                    window.open(url, '_blank');
+                    respond(`Opening ${site}...`, 'info', url);
+                    return;
+                }
+            }
+
+            // 3. Fun Tools
+            if (command.includes('joke')) {
+                const jokes = [
+                    "Why robots never get lost? They always follow the right code!",
+                    "What do you call a sleeping robot? A power nap!",
+                    "Why do robots love music? They have great beats!",
+                    "Why was the computer cold? It left its Windows open!",
+                    "What’s a robot’s favorite snack? Microchips!"
+                ];
+                const reply = "😄 " + jokes[Math.floor(Math.random() * jokes.length)];
+                respond(reply, 'fun');
+                return;
+            }
+
+            if (command.includes('motivate') || command.includes('inspire')) {
+                const quotes = [
+                    "Believe you can and you're halfway there.",
+                    "Your only limit is your mind.",
+                    "Every day is a fresh start."
+                ];
+                const reply = "💡 " + quotes[Math.floor(Math.random() * quotes.length)];
+                respond(reply, 'fun');
+                return;
+            }
+
+            if (command.includes('roll dice') || command.includes('roll a dice')) {
+                const d1 = Math.floor(Math.random() * 6) + 1;
+                const d2 = Math.floor(Math.random() * 6) + 1;
+                const reply = `🎲 You rolled ${d1} and ${d2} — total ${d1 + d2}`;
+                respond(reply, 'fun');
+                return;
+            }
+
+            // 4. Calculations
+            const mathResult = calculateMath(command);
+            if (mathResult !== null) {
+                respond(`🧮 The answer is ${mathResult}`, 'info');
+                return;
+            }
+
+            // 5. Wikipedia & Internet Answer Fallback
+            respondThinking();
+            const wikiAnswer = await fetchWikipediaSummary(rawCommand);
+            removeThinking();
+
+            if (wikiAnswer) {
+                respond(`📚 From Wikipedia:\n${wikiAnswer}`, 'info');
+            } else {
+                respond(`📌 I couldn't find an exact match on Wikipedia, but you can search Google for "${rawCommand}".`, 'info', `https://www.google.com/search?q=${encodeURIComponent(rawCommand)}`);
+            }
+        }
+
+        // Math evaluator for basic voice math expressions
+        function calculateMath(command) {
+            let expr = command.replace(/what is|calculate|compute/g, '').trim();
+            expr = expr.replace(/plus/g, '+')
+                       .replace(/minus/g, '-')
+                       .replace(/times|multiplied by/g, '*')
+                       .replace(/divided by/g, '/');
+
+            // Basic safety check: allow only digits and basic math operations
+            if (/^[0-9+\-*/.\s()]+$/.test(expr) && expr.length > 0) {
+                try {
+                    const result = eval(expr);
+                    return result;
+                } catch {
+                    return null;
+                }
+            }
+            return null;
+        }
+
+        // Wikipedia API Query
+        async function fetchWikipediaSummary(query) {
+            try {
+                const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`;
+                const res = await fetch(url);
+                if (!res.ok) return null;
+                const data = await res.json();
+                return data.extract || null;
+            } catch (err) {
+                return null;
+            }
+        }
+
+        // Output Handlers
+        function respond(text, tag = 'info', linkUrl = null) {
+            addChatMessage('assistant', text, tag, linkUrl);
+            speakText(text);
+        }
+
+        function speakText(text) {
+            const autoVoice = document.getElementById('ttsToggle').checked;
+            if (!autoVoice || !('speechSynthesis' in window)) return;
+
+            window.speechSynthesis.cancel(); // Stop ongoing speech
+            const cleanText = text.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, ''); // Strip emojis for smoother TTS
+            const utterance = new SpeechSynthesisUtterance(cleanText);
+            
+            const speed = parseFloat(document.getElementById('rateSlider').value) || 1.0;
+            utterance.rate = speed;
+
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function addChatMessage(sender, text, tag = 'info', linkUrl = null) {
+            const history = document.getElementById('chatHistory');
+            const msgDiv = document.createElement('div');
+            
+            if (sender === 'user') {
+                msgDiv.className = 'chat-box user-msg';
+                msgDiv.innerHTML = `<strong>You:</strong> ${escapeHtml(text)}`;
+            } else {
+                msgDiv.className = `chat-box assistant-msg ${tag}-msg`;
+                let content = `<strong>Assistant:</strong> ${escapeHtml(text).replace(/\n/g, '<br>')}`;
+                if (linkUrl) {
+                    content += `<br><a href="${linkUrl}" target="_blank" class="inline-flex items-center gap-1 text-blue-600 font-bold hover:underline mt-2 text-xs"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Link</a>`;
+                }
+                msgDiv.innerHTML = content;
+            }
+
+            history.appendChild(msgDiv);
+            history.scrollTop = history.scrollHeight;
+        }
+
+        function respondThinking() {
+            const history = document.getElementById('chatHistory');
+            const msgDiv = document.createElement('div');
+            msgDiv.id = 'thinkingBubble';
+            msgDiv.className = 'chat-box assistant-msg info-msg flex items-center gap-2 text-slate-500';
+            msgDiv.innerHTML = `<i class="fa-solid fa-circle-notch animate-spin text-blue-600"></i> Thinking & searching...`;
+            history.appendChild(msgDiv);
+            history.scrollTop = history.scrollHeight;
+        }
+
+        function removeThinking() {
+            const thinking = document.getElementById('thinkingBubble');
+            if (thinking) thinking.remove();
+        }
+
+        function clearHistory() {
+            document.getElementById('chatHistory').innerHTML = `
+                <div class="chat-box assistant-msg info-msg">
+                    <strong>Assistant:</strong> Conversation cleared! How can I help you next?
+                </div>
+            `;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.innerText = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
